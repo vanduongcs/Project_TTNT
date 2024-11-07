@@ -132,28 +132,25 @@ bool revise(MapColoring* map, int state_index, int neighbor_index) {
     return revised;
 }
 
-// Hàm Arc Consistency (AC-3) kiểm tra tính nhất quán giữa các miền giá trị
+
 bool AC3(MapColoring* map) {
-    char queue[MAX_STATES * MAX_NEIGHBORS][2][MAX_LENGTH_STATE_NAME]; // Mỗi phần tử có dạng (bang, hàng xóm) với số lượng = số bang * số hàng xóm và độ dài tên bang = 20
+    char queue[MAX_STATES * MAX_NEIGHBORS][2][MAX_LENGTH_STATE_NAME];
     int front = 0, rear = 0;
 
-    // Thêm tất cả các cặp (bang, hàng xóm) vào hàng đợi
     int num_states = map->num_states;
     for (int state_index = 0; state_index < num_states; state_index++) {
         int num_neighbors = map->num_neighbors[state_index];
         for (int neighbor_position = 0; neighbor_position < num_neighbors; neighbor_position++) {
-            strcpy(queue[rear][0], map->state.names[state_index]); // Thêm tên bang vào queue
-            strcpy(queue[rear][1], map->neighbors[state_index][neighbor_position]); // Thêm tên hàng xóm vào queue
+            strcpy(queue[rear][0], map->state.names[state_index]); 
+            strcpy(queue[rear][1], map->neighbors[state_index][neighbor_position]);
             rear++;
         }
     }
 
-    // Xử lý hàng đợi
     while (front < rear) {
         char state_name[20];
         char neighbor_name[20];
         
-        // Lấy tên bang và tên hàng xóm từ queue
         strcpy(state_name, queue[front][0]);
         strcpy(neighbor_name, queue[front][1]);
         front++;
@@ -161,7 +158,6 @@ bool AC3(MapColoring* map) {
         int state_actual_index = -1;
         int neighbor_actual_index = -1;
 
-        // Tìm chỉ số của bang
         for (int i = 0; i < map->num_states; i++) {
             if (strcmp(map->state.names[i], state_name) == 0) {
                 state_actual_index = i;
@@ -171,13 +167,11 @@ bool AC3(MapColoring* map) {
             }
         }
 
-        // Nếu hàng xóm tồn tại và sửa miền giá trị thì kiểm tra tiếp
         if (neighbor_actual_index != -1 && revise(map, state_actual_index, neighbor_actual_index)) {
             if (map->state.num_available_colors[state_actual_index] == 0) {
-                return false;  // Không có màu khả thi
+                return false;  
             }
 
-            // Thêm hàng xóm khác vào hàng đợi
             for (int i = 0; i < map->num_neighbors[state_actual_index]; i++) {
                 if (strcmp(map->neighbors[state_actual_index][i], neighbor_name) != 0) {
                     strcpy(queue[rear][0], map->neighbors[state_actual_index][i]);
@@ -187,7 +181,7 @@ bool AC3(MapColoring* map) {
             }
         }
     }
-
+    
     return true;  
 }
 
@@ -211,32 +205,25 @@ int selectMRVState(MapColoring* map) {
     return selected_state_index;  
 }
 
-// Hàm đệ quy để thử tô màu cho từng bang bằng phương pháp "backtracking"
 bool backtrack(MapColoring* map) {
-    if (!AC3(map)) {
-        return false;  // Nếu không nhất quán, trả về false
-    }
-
-    int state_index = selectMRVState(map); // Chọn bang có số màu khả thi ít nhất
+    int state_index = selectMRVState(map); 
 
     if (state_index == NO_SELECTION) {
-        return true;  // Nếu không còn bang nào cần tô màu, trả về true
+        return true;  
     }
 
-    // Thử từng màu cho bang được chọn
-    for (int color_position = 0; color_position < map->state.num_available_colors[state_index]; color_position++) {
+    int num_available_colors = map->state.num_available_colors[state_index];
+    for (int color_position = 0; color_position < num_available_colors; color_position++) {
         int color_code = map->state.colors[state_index][color_position];
 
-        // Nếu màu hợp lệ
         if (isValidColor(map, state_index, color_code)) {
-            map->colors[state_index] = color_code;  // Tô màu cho bang
+            map->colors[state_index] = color_code; 
 
-            // Gọi đệ quy cho bước tiếp theo
-            if (backtrack(map)) {
-                return true;  
+            if (AC3(map)) {
+                if (backtrack(map)) {
+                    return true;  
+                }
             }
-
-            // Nếu không thành công, quay lại và thử màu khác
             map->colors[state_index] = NO_COLOR;  
         }
     }
